@@ -1,0 +1,19 @@
+{
+  "name": "yoga-nidra-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Yoga nidra / NSDR sessions in a tiny installable app (PWA + Capacitor Android).",
+  "scripts": {
+    "start": "npx --yes serve www -l 5173",
+    "icons": "python3 scripts/make-icons.py",
+    "android:add": "cap add android",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android",
+    "android:apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  }
+}

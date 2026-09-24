@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Yoga Nidra</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Yoga Nidra</h1>
+    <p class="sub">Non-sleep deep rest, one tap away.</p>
+  </header>
+
+  <section class="player hidden" id="player">
+    <div class="frame" id="frame"></div>
+    <div class="player-meta">
+      <div>
+        <h2 id="playing-title"></h2>
+        <p class="muted" id="playing-teacher"></p>
+      </div>
+      <div class="player-actions">
+        <a id="open-youtube" class="btn ghost" target="_blank" rel="noopener">Open in YouTube</a>
+        <button id="close-player" class="btn ghost" type="button">Close</button>
+      </div>
+    </div>
+  </section>
+
+  <nav class="filters" aria-label="Filters">
+    <div class="chips" id="duration-chips">
+      <button class="chip active" data-min="0" type="button">All</button>
+      <button class="chip" data-min="10" type="button">10 min</button>
+      <button class="chip" data-min="20" type="button">20 min</button>
+      <button class="chip" data-min="30" type="button">30 min</button>
+      <button class="chip" data-fav="1" type="button">★ Favourites</button>
+    </div>
+    <select id="teacher-select" aria-label="Teacher">
+      <option value="">All teachers</option>
+    </select>
+  </nav>
+
+  <main>
+    <ul class="list" id="list"></ul>
+    <p class="empty hidden" id="empty">Nothing here yet.</p>
+  </main>
+
+  <section class="add">
+    <details>
+      <summary>Add your own video</summary>
+      <form id="add-form">
+        <input id="add-url" type="url" placeholder="Paste a YouTube link" required inputmode="url">
+        <input id="add-title" type="text" placeholder="Title (optional)">
+        <input id="add-teacher" type="text" placeholder="Teacher (optional)">
+        <input id="add-minutes" type="number" min="1" max="180" placeholder="Minutes (optional)">
+        <button class="btn" type="submit">Add</button>
+      </form>
+    </details>
+  </section>
+
+  <footer class="foot">
+    <p>Sessions drawn from the NSDR chapter of Andrew Huberman's <em>Protocols</em> and the teachers he recommends: Kelly Boys, Ally Boothroyd and Liam Gillen.</p>
+    <p class="muted">Videos stream from YouTube. Favourites and added videos are stored on this device.</p>
+  </footer>
+
+  <script src="videos.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
