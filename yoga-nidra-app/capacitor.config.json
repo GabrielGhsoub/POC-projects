@@ -1,0 +1,12 @@
+{
+  "appId": "com.gabriel.yoganidra",
+  "appName": "Yoga Nidra",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0f1117"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
