@@ -46,8 +46,20 @@ jobs:
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
 
-      - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk yoga-nidra.apk
+      # Sign with a fixed key (repo secrets) so each new APK installs over the
+      # previous one instead of failing with "signatures do not match".
+      - name: Sign APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" sign \
+            --ks "$RUNNER_TEMP/release.jks" --ks-key-alias yoganidra \
+            --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD \
+            --out yoga-nidra.apk android/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs yoga-nidra.apk | head -1
+          rm "$RUNNER_TEMP/release.jks"
 
       - uses: actions/upload-artifact@v4
         with:
