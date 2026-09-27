@@ -6,6 +6,7 @@
 //   - Kelly Boys (the teacher Huberman names as his go-to for yoga nidra)
 //   - Ally Boothroyd (Sarovara Yoga, NSDR-style yoga nidra)
 //   - Liam Gillen (Amrit Yoga Institute, I AM Yoga Nidra)
+//   - Extra short (~10 min) NSDR sessions: RosalieYoga, Yoga With Tim, Loren Runion
 //
 // To add a video: copy one entry, paste the 11-character YouTube ID.
 // You can also add videos from inside the app (they are stored on the phone).
@@ -46,7 +47,7 @@ window.NIDRA_SESSIONS = [
     id: "Y0ID-Z0kMkA",
     title: "Sleep and Relaxation: NSDR Yoga Nidra",
     teacher: "Kelly Boys",
-    minutes: 20,
+    minutes: 48,
     tags: ["yoga nidra", "sleep", "relaxation"],
     note: "Kelly Boys is the yoga nidra teacher Huberman cites as his daily practice."
   },
@@ -60,11 +61,67 @@ window.NIDRA_SESSIONS = [
   },
   {
     id: "IcwdJcaCRD8",
-    title: "10 Minute Grounding Yoga Nidra with Forest Sounds",
+    title: "10 Minute Yoga Nidra Meditation",
     teacher: "Ally Boothroyd",
+    minutes: 11,
+    tags: ["yoga nidra", "short"],
+    note: "Gentle short practice."
+  },
+  {
+    id: "_noquwycq78",
+    title: "Ten Minute Yoga Nidra | Reset Your Nervous System",
+    teacher: "Ally Boothroyd",
+    minutes: 11,
+    tags: ["yoga nidra", "nervous system", "short"],
+    note: "Her most watched session. Ocean waves and breath to calm the nervous system."
+  },
+  {
+    id: "Gj-ZlTpLJYw",
+    title: "Non Sleep Deep Rest NSDR Meditation | 10 minute",
+    teacher: "RosalieYoga",
     minutes: 10,
-    tags: ["yoga nidra", "grounding", "nature"],
-    note: "Gentle 10 minute practice with forest ambience."
+    tags: ["nsdr", "short"],
+    note: "A quick full-system reset for when you're short on time."
+  },
+  {
+    id: "dPY2biFwab8",
+    title: "Non Sleep Deep Rest Practice (NSDR)",
+    teacher: "RosalieYoga",
+    minutes: 9,
+    tags: ["nsdr", "short"],
+    note: "Shortest session in the list."
+  },
+  {
+    id: "rI7gxZQ0i48",
+    title: "Non Sleep Deep Rest | 12 minute NSDR",
+    teacher: "RosalieYoga",
+    minutes: 12,
+    tags: ["nsdr", "short"],
+    note: "A couple of minutes longer than the 10 minute sessions."
+  },
+  {
+    id: "3bMP0NSwPgw",
+    title: "Non Sleep Deep Rest | NSDR | 15 minute Yoga Nidra",
+    teacher: "RosalieYoga",
+    minutes: 15,
+    tags: ["nsdr", "yoga nidra"],
+    note: "One of the most watched NSDR sessions on YouTube."
+  },
+  {
+    id: "v87BX0bJK8Y",
+    title: "NSDR Non Sleep Deep Rest | 10 Minute Yoga Nidra",
+    teacher: "Yoga With Tim",
+    minutes: 10,
+    tags: ["nsdr", "yoga nidra", "short"],
+    note: "Short yoga nidra in the NSDR format."
+  },
+  {
+    id: "GGtkl9x7VUI",
+    title: "Non Sleep Deep Rest 10 Min | NSDR Meditation",
+    teacher: "Loren Runion",
+    minutes: 10,
+    tags: ["nsdr", "short"],
+    note: "Short NSDR meditation."
   },
   {
     id: "99bXH9ad5sg",
