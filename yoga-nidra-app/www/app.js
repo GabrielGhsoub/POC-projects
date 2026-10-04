@@ -132,7 +132,9 @@
       const done = (v) => { dlg.onclose = null; if (dlg.open) dlg.close(); resolve(v); };
       $("#ask-yes").onclick = () => done(true);
       $("#ask-no").onclick = () => done(false);
-      dlg.onclose = () => done(false);
+      // A close event from the previous sheet can arrive after this one opened;
+      // only treat it as "no" if this sheet is actually closed.
+      dlg.onclose = () => { if (!dlg.open) done(false); };
       dlg.showModal();
     });
   }
@@ -163,7 +165,7 @@
         }, 1000);
       });
       const waiting = ask("Allow it in Settings", "Switch it on, then come back here.", "Done", "Skip");
-      await Promise.race([granted.then(() => { const d = $("#ask"); if (d.open) d.close(); }), waiting]);
+      await Promise.race([granted.then(() => $("#ask-yes").click()), waiting]);
       clearInterval(timer);
       state = await nativeAlarm("checkSetup");
     }
