@@ -1,53 +1,156 @@
 package com.gabriel.nidraalarm;
 
-import android.content.ActivityNotFoundException;
+import android.Manifest;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
-import android.provider.AlarmClock;
+import android.net.Uri;
+import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
-// Hands the alarm to the phone's Clock app, which rings reliably even when the
-// screen is off and this app is in the background.
-@CapacitorPlugin(name = "NidraAlarm")
+// The app's own wake-up alarm: exact, rings on the alarm stream with a full-screen
+// alarm, and can be set and cancelled silently.
+//
+// JS: Capacitor.nativePromise("NidraAlarm", <method>, <options>)
+//   set({ at: epochMillis, label })  schedule (replaces any pending alarm)
+//   cancel()                         cancel the pending alarm, or stop it ringing
+//   status()                         { at } of the pending alarm, 0 if none
+//   checkSetup()                     which alarm permissions are granted
+//   requestSetup({ item })           ask for one of them (see checkSetup keys)
+@CapacitorPlugin(
+    name = "NidraAlarm",
+    permissions = @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS })
+)
 public class NidraAlarmPlugin extends Plugin {
 
     @PluginMethod
     public void set(PluginCall call) {
-        Integer hour = call.getInt("hour");
-        Integer minute = call.getInt("minute");
-        if (hour == null || minute == null) {
-            call.reject("hour and minute are required");
+        Long at = call.getLong("at");
+        if (at == null || at <= System.currentTimeMillis()) {
+            call.reject("at must be a future time in milliseconds");
             return;
         }
-        Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM)
-            .putExtra(AlarmClock.EXTRA_HOUR, hour)
-            .putExtra(AlarmClock.EXTRA_MINUTES, minute)
-            .putExtra(AlarmClock.EXTRA_MESSAGE, call.getString("label", "Yoga Nidra"))
-            .putExtra(AlarmClock.EXTRA_VIBRATE, true)
-            .putExtra(AlarmClock.EXTRA_SKIP_UI, true)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try {
-            getActivity().startActivity(intent);
-            call.resolve();
-        } catch (ActivityNotFoundException e) {
-            call.reject("No clock app found to set the alarm");
+        Context ctx = getContext();
+        if (!AlarmScheduler.canScheduleExact(ctx)) {
+            call.reject("Exact alarms are not allowed for this app");
+            return;
         }
+        RingService.ensureChannel(ctx);
+        allowAlarmsInDnd(ctx);
+        AlarmScheduler.schedule(ctx, at, call.getString("label", "Yoga Nidra"));
+        call.resolve();
     }
 
     @PluginMethod
     public void cancel(PluginCall call) {
-        Intent intent = new Intent(AlarmClock.ACTION_DISMISS_ALARM)
-            .putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_LABEL)
-            .putExtra(AlarmClock.EXTRA_MESSAGE, call.getString("label", "Yoga Nidra"))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Context ctx = getContext();
+        AlarmScheduler.cancel(ctx);
+        ctx.stopService(new Intent(ctx, RingService.class));
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void status(PluginCall call) {
+        long at = AlarmScheduler.pendingAt(getContext());
+        JSObject r = new JSObject();
+        r.put("at", at > System.currentTimeMillis() ? at : 0);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void checkSetup(PluginCall call) {
+        call.resolve(setupState());
+    }
+
+    @PluginMethod
+    public void requestSetup(PluginCall call) {
+        String item = call.getString("item", "");
+        Context ctx = getContext();
+        String pkg = ctx.getPackageName();
+        Intent intent = null;
+        switch (item) {
+            case "notifications":
+                if (Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED) {
+                    requestPermissionForAlias("notifications", call, "notificationsResult");
+                    return;
+                }
+                break;
+            case "exactAlarm":
+                if (Build.VERSION.SDK_INT >= 31) {
+                    intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + pkg));
+                }
+                break;
+            case "fullScreen":
+                if (Build.VERSION.SDK_INT >= 34) {
+                    intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + pkg));
+                }
+                break;
+            case "battery":
+                intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + pkg));
+                break;
+            case "dnd":
+                intent = new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+                break;
+            default:
+                call.reject("Unknown setup item: " + item);
+                return;
+        }
+        if (intent != null) {
+            try {
+                getActivity().startActivity(intent);
+            } catch (Exception e) {
+                call.reject("Couldn't open the settings screen for " + item);
+                return;
+            }
+        }
+        call.resolve(setupState());
+    }
+
+    @PermissionCallback
+    private void notificationsResult(PluginCall call) {
+        call.resolve(setupState());
+    }
+
+    private JSObject setupState() {
+        Context ctx = getContext();
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+        JSObject r = new JSObject();
+        r.put("notifications", Build.VERSION.SDK_INT < 33 || getPermissionState("notifications") == PermissionState.GRANTED);
+        r.put("exactAlarm", AlarmScheduler.canScheduleExact(ctx));
+        r.put("fullScreen", Build.VERSION.SDK_INT < 34 || nm.canUseFullScreenIntent());
+        r.put("battery", Build.VERSION.SDK_INT < 23 || pm.isIgnoringBatteryOptimizations(ctx.getPackageName()));
+        r.put("dnd", Build.VERSION.SDK_INT < 23 || nm.isNotificationPolicyAccessGranted());
+        return r;
+    }
+
+    // With Do Not Disturb access, make sure DND lets alarms through so the alarm rings.
+    private void allowAlarmsInDnd(Context ctx) {
+        if (Build.VERSION.SDK_INT < 28) return;
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!nm.isNotificationPolicyAccessGranted()) return;
+        NotificationManager.Policy p = nm.getNotificationPolicy();
+        if ((p.priorityCategories & NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS) != 0) return;
+        int cats = p.priorityCategories | NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS;
         try {
-            getActivity().startActivity(intent);
-            call.resolve();
-        } catch (ActivityNotFoundException e) {
-            call.reject("No clock app found to cancel the alarm");
+            if (Build.VERSION.SDK_INT >= 30) {
+                nm.setNotificationPolicy(new NotificationManager.Policy(cats, p.priorityCallSenders,
+                    p.priorityMessageSenders, p.suppressedVisualEffects, p.priorityConversationSenders));
+            } else {
+                nm.setNotificationPolicy(new NotificationManager.Policy(cats, p.priorityCallSenders,
+                    p.priorityMessageSenders, p.suppressedVisualEffects));
+            }
+        } catch (SecurityException ignored) {
         }
     }
 }

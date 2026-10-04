@@ -28,13 +28,30 @@
   const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   const embedHost = isNative ? "https://www.youtube.com" : "https://www.youtube-nocookie.com";
 
-  // Wake-up alarm: set in the phone's Clock app (native plugin) so it rings
-  // even if the screen is off and you fell asleep during the session.
+  // Wake-up alarm: the app's own native alarm (plugins/nidra-alarm). It rings on
+  // the alarm stream with a full-screen alarm, even with the screen off or the app
+  // closed, so it wakes you if you fell asleep during the session.
   const ALARM_LABEL = "Yoga Nidra wake-up";
   const ALARM_DELAY_MS = 3 * 60 * 1000;
+  const KEY_SETUP_SKIPPED = "nidra.alarmSetupSkipped";
   const canAlarm = isNative && typeof window.Capacitor.nativePromise === "function" &&
     window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable("NidraAlarm");
+  const nativeAlarm = (method, opts = {}) => window.Capacitor.nativePromise("NidraAlarm", method, opts);
   let alarm = null; // { at: Date } while one is pending
+
+  // What the alarm needs, asked for once each, in this order.
+  const ALARM_SETUP = [
+    { key: "notifications", title: "Allow notifications?",
+      text: "The alarm rings through a notification with Snooze and I'm awake buttons." },
+    { key: "exactAlarm", title: "Allow exact alarms?",
+      text: "Lets the alarm ring at the exact time instead of whenever Android gets around to it." },
+    { key: "fullScreen", title: "Allow full-screen alarm?",
+      text: "Lets the alarm turn the screen on and show over the lock screen, like the Clock app." },
+    { key: "battery", title: "Turn off battery limits?",
+      text: "Stops Samsung's battery saving from delaying or blocking the alarm." },
+    { key: "dnd", title: "Allow Do Not Disturb access?",
+      text: "Lets Yoga Nidra make sure Do Not Disturb lets alarms through. Find Yoga Nidra in the list and switch it on." }
+  ];
 
   const thumb = (id) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
   const watchUrl = (id) => `https://www.youtube.com/watch?v=${id}`;
@@ -125,14 +142,37 @@
     if (alarm) $("#alarm-note-text").textContent = `⏰ Alarm set for ${fmtTime(alarm.at)}`;
   }
 
-  async function setAlarm(s) {
-    // Clock alarms have minute precision, so round up to the next whole minute.
-    const at = new Date(Date.now() + sessionSeconds(s) * 1000 + ALARM_DELAY_MS);
-    if (at.getSeconds() || at.getMilliseconds()) at.setMinutes(at.getMinutes() + 1, 0, 0);
-    try {
-      await window.Capacitor.nativePromise("NidraAlarm", "set", {
-        hour: at.getHours(), minute: at.getMinutes(), label: ALARM_LABEL
+  // Walk through any missing alarm permissions. Settings screens are polled until
+  // the permission shows up, or the user taps Done / Skip.
+  async function ensureAlarmSetup() {
+    const skipped = new Set(load(KEY_SETUP_SKIPPED, []));
+    let state = await nativeAlarm("checkSetup");
+    for (const item of ALARM_SETUP) {
+      if (state[item.key] || skipped.has(item.key)) continue;
+      if (!(await ask(item.title, item.text, "Allow", "Skip"))) {
+        skipped.add(item.key);
+        save(KEY_SETUP_SKIPPED, [...skipped]);
+        continue;
+      }
+      state = await nativeAlarm("requestSetup", { item: item.key });
+      if (state[item.key] || item.key === "notifications") continue;
+      let timer;
+      const granted = new Promise((resolve) => {
+        timer = setInterval(async () => {
+          try { if ((await nativeAlarm("checkSetup"))[item.key]) resolve(true); } catch {}
+        }, 1000);
       });
+      const waiting = ask("Allow it in Settings", "Switch it on, then come back here.", "Done", "Skip");
+      await Promise.race([granted.then(() => { const d = $("#ask"); if (d.open) d.close(); }), waiting]);
+      clearInterval(timer);
+      state = await nativeAlarm("checkSetup");
+    }
+  }
+
+  async function setAlarm(at) {
+    try {
+      await ensureAlarmSetup();
+      await nativeAlarm("set", { at: at.getTime(), label: ALARM_LABEL });
       alarm = { at };
     } catch (e) {
       alert("Couldn't set the alarm: " + (e && e.message ? e.message : e));
@@ -141,9 +181,7 @@
 
   async function cancelAlarm() {
     if (!alarm) return;
-    try {
-      await window.Capacitor.nativePromise("NidraAlarm", "cancel", { label: ALARM_LABEL });
-    } catch {}
+    try { await nativeAlarm("cancel"); } catch {}
     alarm = null;
     showAlarmNote();
   }
@@ -154,13 +192,13 @@
     const sec = sessionSeconds(s);
     if (canAlarm && sec) {
       if (alarm) await cancelAlarm();
-      const at = new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS);
       const wantAlarm = await ask(
         "Wake-up alarm?",
-        `Rings around ${fmtTime(at)}, 3 minutes after this ${fmtLength(sec)} session ends, in case you fall asleep.`,
+        `Rings 3 minutes after this ${fmtLength(sec)} session ends, around ${fmtTime(new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS))}, in case you fall asleep.`,
         "Set alarm", "No alarm"
       );
-      if (wantAlarm) await setAlarm(s);
+      // Timed from when you answer, so the wait doesn't eat into the 3 minutes.
+      if (wantAlarm) await setAlarm(new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS));
     }
     plays[id] = (plays[id] || 0) + 1;
     save(KEY_PLAYS, plays);
@@ -229,6 +267,11 @@
 
   if ("serviceWorker" in navigator && !isNative && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
+  // Pick up an alarm that is still pending from before the app was closed.
+  if (canAlarm) {
+    nativeAlarm("status").then((r) => { if (r && r.at) { alarm = { at: new Date(r.at) }; showAlarmNote(); } }).catch(() => {});
   }
 
   fillTeachers();
