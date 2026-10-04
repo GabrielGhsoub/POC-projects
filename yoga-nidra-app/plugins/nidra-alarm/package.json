@@ -1,0 +1,9 @@
+{
+  "name": "nidra-alarm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sets and cancels a wake-up alarm in the phone's Clock app.",
+  "capacitor": {
+    "android": { "src": "android" }
+  }
+}

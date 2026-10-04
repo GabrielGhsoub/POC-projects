@@ -28,6 +28,14 @@
   const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   const embedHost = isNative ? "https://www.youtube.com" : "https://www.youtube-nocookie.com";
 
+  // Wake-up alarm: set in the phone's Clock app (native plugin) so it rings
+  // even if the screen is off and you fell asleep during the session.
+  const ALARM_LABEL = "Yoga Nidra wake-up";
+  const ALARM_DELAY_MS = 3 * 60 * 1000;
+  const canAlarm = isNative && typeof window.Capacitor.nativePromise === "function" &&
+    window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable("NidraAlarm");
+  let alarm = null; // { at: Date } while one is pending
+
   const thumb = (id) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
   const watchUrl = (id) => `https://www.youtube.com/watch?v=${id}`;
 
@@ -92,9 +100,68 @@
     }).join("");
   }
 
-  function play(id) {
+  const fmtTime = (d) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const fmtLength = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  const sessionSeconds = (s) => Number(s.seconds) || (Number(s.minutes) || 0) * 60;
+
+  // Small yes/no sheet; resolves true for yes, false for no or dismiss.
+  function ask(title, text, yes, no) {
+    const dlg = $("#ask");
+    $("#ask-title").textContent = title;
+    $("#ask-text").textContent = text;
+    $("#ask-yes").textContent = yes;
+    $("#ask-no").textContent = no;
+    return new Promise((resolve) => {
+      const done = (v) => { dlg.onclose = null; if (dlg.open) dlg.close(); resolve(v); };
+      $("#ask-yes").onclick = () => done(true);
+      $("#ask-no").onclick = () => done(false);
+      dlg.onclose = () => done(false);
+      dlg.showModal();
+    });
+  }
+
+  function showAlarmNote() {
+    $("#alarm-note").classList.toggle("hidden", !alarm);
+    if (alarm) $("#alarm-note-text").textContent = `⏰ Alarm set for ${fmtTime(alarm.at)}`;
+  }
+
+  async function setAlarm(s) {
+    // Clock alarms have minute precision, so round up to the next whole minute.
+    const at = new Date(Date.now() + sessionSeconds(s) * 1000 + ALARM_DELAY_MS);
+    if (at.getSeconds() || at.getMilliseconds()) at.setMinutes(at.getMinutes() + 1, 0, 0);
+    try {
+      await window.Capacitor.nativePromise("NidraAlarm", "set", {
+        hour: at.getHours(), minute: at.getMinutes(), label: ALARM_LABEL
+      });
+      alarm = { at };
+    } catch (e) {
+      alert("Couldn't set the alarm: " + (e && e.message ? e.message : e));
+    }
+  }
+
+  async function cancelAlarm() {
+    if (!alarm) return;
+    try {
+      await window.Capacitor.nativePromise("NidraAlarm", "cancel", { label: ALARM_LABEL });
+    } catch {}
+    alarm = null;
+    showAlarmNote();
+  }
+
+  async function play(id) {
     const s = all().find((x) => x.id === id);
     if (!s) return;
+    const sec = sessionSeconds(s);
+    if (canAlarm && sec) {
+      if (alarm) await cancelAlarm();
+      const at = new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS);
+      const wantAlarm = await ask(
+        "Wake-up alarm?",
+        `Rings around ${fmtTime(at)}, 3 minutes after this ${fmtLength(sec)} session ends, in case you fall asleep.`,
+        "Set alarm", "No alarm"
+      );
+      if (wantAlarm) await setAlarm(s);
+    }
     plays[id] = (plays[id] || 0) + 1;
     save(KEY_PLAYS, plays);
     const src = `${embedHost}/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
@@ -102,14 +169,19 @@
     $("#playing-title").textContent = s.title || "Untitled";
     $("#playing-teacher").textContent = [s.teacher, s.minutes ? `${s.minutes} min` : null].filter(Boolean).join(" · ");
     $("#open-youtube").href = watchUrl(id);
+    showAlarmNote();
     player.classList.remove("hidden");
     player.scrollIntoView({ behavior: "smooth", block: "start" });
     render();
   }
 
-  function closePlayer() {
+  async function closePlayer() {
     frame.innerHTML = "";
     player.classList.add("hidden");
+    if (alarm && alarm.at > Date.now() &&
+        await ask("Cancel the alarm too?", `Your wake-up alarm is set for ${fmtTime(alarm.at)}.`, "Cancel alarm", "Keep it")) {
+      await cancelAlarm();
+    }
   }
 
   list.addEventListener("click", (e) => {
@@ -123,6 +195,7 @@
   });
 
   $("#close-player").addEventListener("click", closePlayer);
+  $("#alarm-cancel").addEventListener("click", cancelAlarm);
 
   $("#duration-chips").addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");

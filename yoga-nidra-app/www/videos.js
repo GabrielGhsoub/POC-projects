@@ -9,6 +9,7 @@
 //   - Extra short (~10 min) NSDR sessions: RosalieYoga, Yoga With Tim, Loren Runion
 //
 // To add a video: copy one entry, paste the 11-character YouTube ID.
+// `seconds` is the exact video length; the wake-up alarm is timed from it.
 // You can also add videos from inside the app (they are stored on the phone).
 window.NIDRA_SESSIONS = [
   {
@@ -16,6 +17,7 @@ window.NIDRA_SESSIONS = [
     title: "10 Minute Non-Sleep Deep Rest (NSDR)",
     teacher: "Dr. Andrew Huberman",
     minutes: 10,
+    seconds: 642,
     tags: ["nsdr", "energy", "midday"],
     note: "Huberman's own script. Good after a bad night or as a midday reset."
   },
@@ -24,6 +26,7 @@ window.NIDRA_SESSIONS = [
     title: "20 Minute Non-Sleep Deep Rest (NSDR)",
     teacher: "Dr. Andrew Huberman",
     minutes: 20,
+    seconds: 1251,
     tags: ["nsdr", "energy", "focus"],
     note: "The 20 minute version Huberman recommends for restoring mental and physical energy."
   },
@@ -32,6 +35,7 @@ window.NIDRA_SESSIONS = [
     title: "30 Minute Non-Sleep Deep Rest (NSDR)",
     teacher: "Dr. Andrew Huberman",
     minutes: 30,
+    seconds: 1679,
     tags: ["nsdr", "energy", "recovery"],
     note: "Longest of Huberman's recordings. Closest to a full yoga nidra."
   },
@@ -40,6 +44,7 @@ window.NIDRA_SESSIONS = [
     title: "NSDR with Dr. Andrew Huberman (original Madefor recording)",
     teacher: "Dr. Andrew Huberman",
     minutes: 10,
+    seconds: 649,
     tags: ["nsdr", "classic"],
     note: "The original 10 minute NSDR that the book points readers to."
   },
@@ -48,6 +53,7 @@ window.NIDRA_SESSIONS = [
     title: "Sleep and Relaxation: NSDR Yoga Nidra",
     teacher: "Kelly Boys",
     minutes: 48,
+    seconds: 2875,
     tags: ["yoga nidra", "sleep", "relaxation"],
     note: "Kelly Boys is the yoga nidra teacher Huberman cites as his daily practice."
   },
@@ -56,6 +62,7 @@ window.NIDRA_SESSIONS = [
     title: "10 Minute NSDR Yoga Nidra | Nervous System Reset",
     teacher: "Ally Boothroyd",
     minutes: 10,
+    seconds: 705,
     tags: ["yoga nidra", "nervous system", "short"],
     note: "Short reset using the physiological sigh breathing Huberman teaches."
   },
@@ -64,6 +71,7 @@ window.NIDRA_SESSIONS = [
     title: "10 Minute Yoga Nidra Meditation",
     teacher: "Ally Boothroyd",
     minutes: 11,
+    seconds: 658,
     tags: ["yoga nidra", "short"],
     note: "Gentle short practice."
   },
@@ -72,6 +80,7 @@ window.NIDRA_SESSIONS = [
     title: "Ten Minute Yoga Nidra | Reset Your Nervous System",
     teacher: "Ally Boothroyd",
     minutes: 11,
+    seconds: 649,
     tags: ["yoga nidra", "nervous system", "short"],
     note: "Her most watched session. Ocean waves and breath to calm the nervous system."
   },
@@ -80,6 +89,7 @@ window.NIDRA_SESSIONS = [
     title: "Non Sleep Deep Rest NSDR Meditation | 10 minute",
     teacher: "RosalieYoga",
     minutes: 10,
+    seconds: 618,
     tags: ["nsdr", "short"],
     note: "A quick full-system reset for when you're short on time."
   },
@@ -88,6 +98,7 @@ window.NIDRA_SESSIONS = [
     title: "Non Sleep Deep Rest Practice (NSDR)",
     teacher: "RosalieYoga",
     minutes: 9,
+    seconds: 549,
     tags: ["nsdr", "short"],
     note: "Shortest session in the list."
   },
@@ -96,6 +107,7 @@ window.NIDRA_SESSIONS = [
     title: "Non Sleep Deep Rest | 12 minute NSDR",
     teacher: "RosalieYoga",
     minutes: 12,
+    seconds: 720,
     tags: ["nsdr", "short"],
     note: "A couple of minutes longer than the 10 minute sessions."
   },
@@ -104,6 +116,7 @@ window.NIDRA_SESSIONS = [
     title: "Non Sleep Deep Rest | NSDR | 15 minute Yoga Nidra",
     teacher: "RosalieYoga",
     minutes: 15,
+    seconds: 900,
     tags: ["nsdr", "yoga nidra"],
     note: "One of the most watched NSDR sessions on YouTube."
   },
@@ -112,6 +125,7 @@ window.NIDRA_SESSIONS = [
     title: "NSDR Non Sleep Deep Rest | 10 Minute Yoga Nidra",
     teacher: "Yoga With Tim",
     minutes: 10,
+    seconds: 596,
     tags: ["nsdr", "yoga nidra", "short"],
     note: "Short yoga nidra in the NSDR format."
   },
@@ -120,6 +134,7 @@ window.NIDRA_SESSIONS = [
     title: "Non Sleep Deep Rest 10 Min | NSDR Meditation",
     teacher: "Loren Runion",
     minutes: 10,
+    seconds: 605,
     tags: ["nsdr", "short"],
     note: "Short NSDR meditation."
   },
@@ -128,6 +143,7 @@ window.NIDRA_SESSIONS = [
     title: "30 Minute Yoga Nidra | Non-Sleep Deep Rest",
     teacher: "Ally Boothroyd",
     minutes: 30,
+    seconds: 1828,
     tags: ["yoga nidra", "de-stress", "long"],
     note: "Full length NSDR framed as a tool for de-stress and relaxation."
   },
@@ -136,6 +152,7 @@ window.NIDRA_SESSIONS = [
     title: "30 Minute NSDR Yoga Nidra with Ocean Waves",
     teacher: "Ally Boothroyd",
     minutes: 30,
+    seconds: 2122,
     tags: ["yoga nidra", "nervous system", "nature"],
     note: "Nervous system reset with ocean sounds."
   },
@@ -144,6 +161,7 @@ window.NIDRA_SESSIONS = [
     title: "Deserving of Deep Rest | 30 Minute Yoga Nidra",
     teacher: "Ally Boothroyd",
     minutes: 30,
+    seconds: 2288,
     tags: ["yoga nidra", "self-compassion", "long"],
     note: "Slower, self-compassion themed practice."
   },
@@ -152,6 +170,7 @@ window.NIDRA_SESSIONS = [
     title: "I AM Yoga Nidra: Guided Meditation (NSDR)",
     teacher: "Liam Gillen",
     minutes: 30,
+    seconds: 2225,
     tags: ["yoga nidra", "amrit", "long"],
     note: "Amrit Yoga Institute style. Gillen's videos are narrated entirely in his voice."
   },
@@ -160,6 +179,7 @@ window.NIDRA_SESSIONS = [
     title: "20 Minute Guided Yoga Nidra with Liam",
     teacher: "Liam Gillen",
     minutes: 20,
+    seconds: 1189,
     tags: ["yoga nidra", "restoration"],
     note: "A 20 minute restoration practice."
   },
@@ -168,6 +188,7 @@ window.NIDRA_SESSIONS = [
     title: "NSDR (Yoga Nidra) 20 mins, inspired by Dr. Huberman",
     teacher: "Emil Barna",
     minutes: 20,
+    seconds: 1351,
     tags: ["nsdr", "yoga nidra"],
     note: "Community recording that follows the Huberman NSDR structure."
   }

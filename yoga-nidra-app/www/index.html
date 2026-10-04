@@ -23,6 +23,10 @@
       <div>
         <h2 id="playing-title"></h2>
         <p class="muted" id="playing-teacher"></p>
+        <p class="alarm-note hidden" id="alarm-note">
+          <span id="alarm-note-text"></span>
+          <button id="alarm-cancel" class="link" type="button">Cancel alarm</button>
+        </p>
       </div>
       <div class="player-actions">
         <a id="open-youtube" class="btn ghost" target="_blank" rel="noopener">Open in YouTube</a>
@@ -30,6 +34,15 @@
       </div>
     </div>
   </section>
+
+  <dialog class="sheet" id="ask">
+    <h3 id="ask-title"></h3>
+    <p id="ask-text"></p>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="ask-no" type="button"></button>
+      <button class="btn" id="ask-yes" type="button"></button>
+    </div>
+  </dialog>
 
   <nav class="filters" aria-label="Filters">
     <div class="chips" id="duration-chips">
