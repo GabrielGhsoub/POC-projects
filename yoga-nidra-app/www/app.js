@@ -189,6 +189,47 @@
     showAlarmNote();
   }
 
+  // Android pauses the video when the screen turns off or the app goes to the
+  // background. Keep the session going by resuming it through YouTube's embed API,
+  // unless it was already paused before the app went to the background.
+  const PLAYING = 1, PAUSED = 2;
+  let ytFrame = null, ytState = -1, ytPausedAt = 0, inBackground = false;
+  const ytCommand = (func) => ytFrame && ytFrame.contentWindow &&
+    ytFrame.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: [] }), "*");
+
+  function watchPlayer(iframe) {
+    ytFrame = iframe;
+    ytState = -1;
+    iframe.addEventListener("load", () => {
+      // Ask the player to send its state changes to this page.
+      iframe.contentWindow.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*");
+    });
+  }
+
+  function resumeIfPausedByBackground() {
+    if (inBackground && ytState === PAUSED && Date.now() - ytPausedAt < 3000) ytCommand("playVideo");
+  }
+
+  window.addEventListener("message", (e) => {
+    if (!ytFrame || e.source !== ytFrame.contentWindow) return;
+    let data;
+    try { data = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch { return; }
+    const state = data && data.info && data.info.playerState;
+    if (typeof state !== "number" || state === ytState) return;
+    ytState = state;
+    if (state === PAUSED) {
+      ytPausedAt = Date.now();
+      setTimeout(resumeIfPausedByBackground, 600);
+    }
+  });
+
+  // Capacitor fires these when the app goes to the background / comes back.
+  document.addEventListener("pause", () => {
+    inBackground = true;
+    [300, 1000, 2500].forEach((ms) => setTimeout(resumeIfPausedByBackground, ms));
+  });
+  document.addEventListener("resume", () => { inBackground = false; });
+
   async function play(id) {
     const s = all().find((x) => x.id === id);
     if (!s) return;
@@ -210,8 +251,9 @@
     if (canAlarm) nativeAlarm("keepPlaying", { title: s.title || "Yoga Nidra", ms: (sec || 2 * 3600) * 1000 }).catch(() => {});
     plays[id] = (plays[id] || 0) + 1;
     save(KEY_PLAYS, plays);
-    const src = `${embedHost}/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+    const src = `${embedHost}/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
     frame.innerHTML = `<iframe src="${src}" title="${esc(s.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    watchPlayer(frame.querySelector("iframe"));
     $("#playing-title").textContent = s.title || "Untitled";
     $("#playing-teacher").textContent = [s.teacher, s.minutes ? `${s.minutes} min` : null].filter(Boolean).join(" · ");
     $("#open-youtube").href = watchUrl(id);
@@ -223,6 +265,7 @@
 
   async function closePlayer() {
     frame.innerHTML = "";
+    ytFrame = null;
     if (canAlarm) nativeAlarm("stopPlaying").catch(() => {});
     player.classList.add("hidden");
     if (alarm && alarm.at > Date.now() &&
