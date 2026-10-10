@@ -173,11 +173,12 @@
 
   async function setAlarm(at) {
     try {
-      await ensureAlarmSetup();
       await nativeAlarm("set", { at: at.getTime(), label: ALARM_LABEL });
       alarm = { at };
+      return true;
     } catch (e) {
       alert("Couldn't set the alarm: " + (e && e.message ? e.message : e));
+      return false;
     }
   }
 
@@ -199,9 +200,14 @@
         `Rings 3 minutes after this ${fmtLength(sec)} session ends, around ${fmtTime(new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS))}, in case you fall asleep.`,
         "Set alarm", "No alarm"
       );
-      // Timed from when you answer, so the wait doesn't eat into the 3 minutes.
-      if (wantAlarm) await setAlarm(new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS));
+      // Set it straight away so a trip to Settings can't lose it, then walk through
+      // any missing permissions and re-time it from when the session really starts.
+      if (wantAlarm && await setAlarm(new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS))) {
+        try { await ensureAlarmSetup(); } catch {}
+        await setAlarm(new Date(Date.now() + sec * 1000 + ALARM_DELAY_MS));
+      }
     }
+    if (canAlarm) nativeAlarm("keepPlaying", { title: s.title || "Yoga Nidra", ms: (sec || 2 * 3600) * 1000 }).catch(() => {});
     plays[id] = (plays[id] || 0) + 1;
     save(KEY_PLAYS, plays);
     const src = `${embedHost}/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
@@ -217,6 +223,7 @@
 
   async function closePlayer() {
     frame.innerHTML = "";
+    if (canAlarm) nativeAlarm("stopPlaying").catch(() => {});
     player.classList.add("hidden");
     if (alarm && alarm.at > Date.now() &&
         await ask("Cancel the alarm too?", `Your wake-up alarm is set for ${fmtTime(alarm.at)}.`, "Cancel alarm", "Keep it")) {
