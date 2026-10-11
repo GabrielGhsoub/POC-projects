@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.view.View;
+import android.webkit.WebView;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -23,6 +25,8 @@ import com.getcapacitor.annotation.PermissionCallback;
 //
 // JS: Capacitor.nativePromise("NidraAlarm", <method>, <options>)
 //   set({ at: epochMillis, label })  schedule (replaces any pending alarm)
+//   keepPlaying({ title, ms })       keep the session playing with the screen off
+//   stopPlaying()                    stop doing that
 //   cancel()                         cancel the pending alarm, or stop it ringing
 //   status()                         { at } of the pending alarm, 0 if none
 //   checkSetup()                     which alarm permissions are granted
@@ -41,14 +45,46 @@ public class NidraAlarmPlugin extends Plugin {
             return;
         }
         Context ctx = getContext();
-        if (!AlarmScheduler.canScheduleExact(ctx)) {
-            call.reject("Exact alarms are not allowed for this app");
-            return;
-        }
         RingService.ensureChannel(ctx);
         allowAlarmsInDnd(ctx);
         AlarmScheduler.schedule(ctx, at, call.getString("label", "Yoga Nidra"));
+        JSObject r = new JSObject();
+        r.put("at", AlarmScheduler.pendingAt(ctx));
+        r.put("exact", AlarmScheduler.canScheduleExact(ctx));
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void keepPlaying(PluginCall call) {
+        try {
+            PlaybackService.start(getContext(), call.getString("title", "Yoga Nidra"), call.getLong("ms", 0L));
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Couldn't keep playing in the background: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void stopPlaying(PluginCall call) {
+        PlaybackService.stop(getContext());
         call.resolve();
+    }
+
+    // Android WebView pauses video once its window is hidden (screen off, app in the
+    // background). While a session plays, tell it the window is still visible so the
+    // audio carries on; the system's hide notice arrives a moment after onStop.
+    @Override
+    protected void handleOnStop() {
+        if (!PlaybackService.running) return;
+        WebView wv = getBridge().getWebView();
+        for (long delay : new long[] { 0, 300, 1000, 3000 }) {
+            wv.postDelayed(() -> {
+                if (!PlaybackService.running) return;
+                wv.dispatchWindowVisibilityChanged(View.VISIBLE);
+                wv.onResume();
+                wv.resumeTimers();
+            }, delay);
+        }
     }
 
     @PluginMethod

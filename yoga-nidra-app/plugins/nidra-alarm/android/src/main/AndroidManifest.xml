@@ -36,6 +36,11 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <service
+            android:name="com.gabriel.nidraalarm.PlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <activity
             android:name="com.gabriel.nidraalarm.RingActivity"
             android:exported="false"

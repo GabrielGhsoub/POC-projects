@@ -26,8 +26,13 @@ final class AlarmScheduler {
 
     static void schedule(Context ctx, long at, String label) {
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-        // setAlarmClock fires exactly, even in Doze, and shows the alarm icon in the status bar.
-        am.setAlarmClock(new AlarmManager.AlarmClockInfo(at, showIntent(ctx)), fireIntent(ctx));
+        if (canScheduleExact(ctx)) {
+            // setAlarmClock fires exactly, even in Doze, and shows the alarm icon in the status bar.
+            am.setAlarmClock(new AlarmManager.AlarmClockInfo(at, showIntent(ctx)), fireIntent(ctx));
+        } else {
+            // Without exact-alarm access still ring, possibly a few minutes late.
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, fireIntent(ctx));
+        }
         prefs(ctx).edit().putLong(KEY_AT, at).putString(KEY_LABEL, label).apply();
     }
 
